@@ -9,12 +9,20 @@
       "title": "One Hundred Years of Solitude"
     },
     {
-      "title": "The Book Thief",
+      "title": "The Book Thief!",
       "id": 3
     },
     {
-      "title": "Gone with the wind",
-      "id": 4
+      "title": "A Clockwork Orange",
+      "id": 5
+    },
+    {
+      "title": "The Alchemist",
+      "id": 6
+    },
+    {
+      "title": "The Great Gatsby",
+      "id": 7
     }
   ]
 }
