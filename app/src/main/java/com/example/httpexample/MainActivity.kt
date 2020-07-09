@@ -5,8 +5,15 @@ import android.view.MenuItem
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import com.example.httpexample.ui.RecyclerFragment
+import okhttp3.MediaType
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
 
 class MainActivity : AppCompatActivity() {
+
+    val client = OkHttpClient()
+
+    val mediaType: MediaType = "application/json; charset=utf-8".toMediaType()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

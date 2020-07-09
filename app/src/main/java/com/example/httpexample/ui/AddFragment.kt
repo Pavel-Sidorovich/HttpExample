@@ -1,26 +1,32 @@
 package com.example.httpexample.ui
 
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
-import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
-import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
+import androidx.annotation.MainThread
 import androidx.annotation.WorkerThread
+import androidx.fragment.app.Fragment
 import com.example.httpexample.MainActivity
 import com.example.httpexample.R
-import com.example.httpexample.ui.RecyclerFragment.Companion.BOOKS_URI
-import com.example.httpexample.ui.RecyclerFragment.Companion.ENDPOINT
-import com.example.httpexample.ui.RecyclerFragment.Companion.TITLE
 import com.example.httpexample.databinding.FragmentAddBinding
+import com.example.httpexample.ui.RecyclerFragment.Companion.BOOKS_URI
 import com.example.httpexample.ui.RecyclerFragment.Companion.CHANGE_ID
 import com.example.httpexample.ui.RecyclerFragment.Companion.CHANGE_TITLE
+import com.example.httpexample.ui.RecyclerFragment.Companion.ENDPOINT
+import com.example.httpexample.ui.RecyclerFragment.Companion.TITLE
+import okhttp3.Call
+import okhttp3.Callback
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.Response
+import org.json.JSONException
 import org.json.JSONObject
-import java.io.OutputStreamWriter
-import java.lang.Exception
-import java.net.HttpURLConnection
-import java.net.URL
+import java.io.IOException
 
 private const val TAG = "AddFragment"
 
@@ -44,9 +50,7 @@ class AddFragment : Fragment() {
             binding.addButton.text = getString(R.string.change_title)
             binding.addButton.setOnClickListener {
                 val title = binding.title.text.toString()
-                Thread {
-                    changeBook(arguments!!.getInt(CHANGE_ID), title)
-                }.start()
+                changeBook(arguments!!.getInt(CHANGE_ID), title)
                 mainActivity.onBackPressed()
             }
         } else {
@@ -85,56 +89,62 @@ class AddFragment : Fragment() {
      */
     @WorkerThread
     private fun addBook(bookTitle: String) {
-        var httpUrlConnection: HttpURLConnection? = null
         try {
-            httpUrlConnection = URL(ENDPOINT + BOOKS_URI).openConnection() as HttpURLConnection
-            val body = JSONObject().apply {
+            val json = JSONObject().apply {
                 put(TITLE, bookTitle)
             }
-            httpUrlConnection.apply {
-                connectTimeout = 10000 // 10 seconds
-                requestMethod = "POST"
-                doOutput = true
-                setRequestProperty("Content-Type", "application/json")
-            }
-            OutputStreamWriter(httpUrlConnection.outputStream).use {
-                it.write(body.toString())
-            }
-            httpUrlConnection.responseCode
+            val body = json.toString().toRequestBody(mainActivity.mediaType)
+            val request = Request.Builder()
+                .url(ENDPOINT + BOOKS_URI)
+                .post(body)
+                .build()
+            mainActivity.client.newCall(request).execute()
+        } catch (exc: IOException) {
+            Log.e(TAG, "addBookIO", exc)
+        } catch (exc: IllegalStateException) {
+            Log.e(TAG, "addBookIllegal", exc)
+        } catch (exc: JSONException) {
+            Log.e(TAG, "addBookJSON", exc)
         } catch (exc: Exception) {
             Log.e(TAG, "addBook", exc)
-        } finally {
-            httpUrlConnection?.disconnect()
         }
     }
 
     /**
-     * Function for update book.
+     * Function for update book. Work on WorkerThread
      * @param bookTitle is a new book title.
      * @param id is a book id.
      */
-    @WorkerThread
+    @MainThread
     private fun changeBook(id: Int, bookTitle: String) {
-        var httpUrlConnection: HttpURLConnection? = null
         try {
-            httpUrlConnection = URL("$ENDPOINT$BOOKS_URI/$id").openConnection() as HttpURLConnection
-            val body = JSONObject().apply {
+            val json = JSONObject().apply {
                 put(TITLE, bookTitle)
             }
-            httpUrlConnection.apply {
-                connectTimeout = 10000 // 10 seconds
-                requestMethod = "PUT"
-                doOutput = true
-                setRequestProperty("Content-Type", "application/json")
-            }
-            OutputStreamWriter(httpUrlConnection.outputStream).use {
-                it.write(body.toString())
-            }
-            httpUrlConnection.responseCode
+            val body = json.toString().toRequestBody(mainActivity.mediaType)
+            val request = Request.Builder()
+                .url("$ENDPOINT$BOOKS_URI/$id")
+                .put(body)
+                .build()
+            mainActivity.client.newCall(request).enqueue(object : Callback {
+                override fun onFailure(call: Call, e: IOException) {
+                    Log.e(TAG, "removeBookCall", e)
+                }
+
+                override fun onResponse(call: Call, response: Response) {
+                    val handler = Handler(Looper.getMainLooper())
+                    handler.post {
+                        Toast.makeText(mainActivity, response.message, Toast.LENGTH_SHORT).show()
+                    }
+                }
+
+            })
+        } catch (exc: IllegalStateException) {
+            Log.e(TAG, "removeBookIllegal", exc)
+        } catch (exc: JSONException) {
+            Log.e(TAG, "removeBookJSON", exc)
         } catch (exc: Exception) {
             Log.e(TAG, "removeBook", exc)
-        } finally {
-            httpUrlConnection?.disconnect()
         }
     }
 }
