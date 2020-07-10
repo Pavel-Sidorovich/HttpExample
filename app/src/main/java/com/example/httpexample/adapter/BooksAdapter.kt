@@ -8,7 +8,7 @@ import com.example.httpexample.model.Book
 
 class BooksAdapter(
     private val changeListener: (Book) -> Unit,
-    private val swipeListener: (Book) -> Unit
+    private val swipeListener: (Book) -> List<Book>
 ): RecyclerView.Adapter<BooksViewHolder>(),
     BooksTouchHelperAdapter {
 
@@ -37,10 +37,14 @@ class BooksAdapter(
     }
 
     override fun onItemDismiss(position: Int) {
-        swipeListener.invoke(books[position])
+        updateBooks(swipeListener.invoke(books[position]))
     }
 
     override fun onItemChange(position: Int) {
         changeListener.invoke(books[position])
+    }
+
+    fun getLastId(): Int {
+        return books[books.size - 1].id
     }
 }
