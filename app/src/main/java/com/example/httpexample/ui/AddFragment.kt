@@ -50,7 +50,9 @@ class AddFragment : Fragment() {
             binding.addButton.text = getString(R.string.change_title)
             binding.addButton.setOnClickListener {
                 val title = binding.title.text.toString()
-                changeBook(arguments!!.getInt(CHANGE_ID), title)
+                Thread {
+                    changeBook(arguments!!.getInt(CHANGE_ID), title)
+                }
                 mainActivity.onBackPressed()
             }
         } else {
